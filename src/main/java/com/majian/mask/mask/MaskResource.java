@@ -1,6 +1,6 @@
 package com.majian.mask.mask;
 
-public class RegistryEntity {
+public class MaskResource {
     private String appId;
     private String[] paths;
     private String[] methods;

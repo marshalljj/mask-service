@@ -52,8 +52,8 @@ public class MaskAgent {
     }
 
 
-    public void register(RegistryEntity registryEntity) {
-        registryEntity.setAppId(appId);
-        client.register(registryEntity);
+    public void register(MaskResource maskResource) {
+        maskResource.setAppId(appId);
+        client.register(maskResource);
     }
 }

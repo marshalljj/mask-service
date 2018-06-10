@@ -19,7 +19,7 @@ public interface MaskClient {
 
     /**
      * 注册需脱敏的url
-     * @param registryEntity
+     * @param maskResource
      */
-    void register(RegistryEntity registryEntity);
+    void register(MaskResource maskResource);
 }

@@ -32,10 +32,10 @@ public class MaskRegistry {
                 if (handlerMethod.hasMethodAnnotation(UseMask.class)) {
                     String[] patterns = getPaths(handlerMethod);
                     String[] methods = getHttpMethods(handlerMethod);
-                    RegistryEntity registryEntity = new RegistryEntity();
-                    registryEntity.setPaths(patterns);
-                    registryEntity.setMethods(methods);
-                    maskAgent.register(registryEntity);
+                    MaskResource maskResource = new MaskResource();
+                    maskResource.setPaths(patterns);
+                    maskResource.setMethods(methods);
+                    maskAgent.register(maskResource);
                 }
             }
         }
