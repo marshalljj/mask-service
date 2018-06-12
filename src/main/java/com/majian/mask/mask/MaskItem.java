@@ -7,9 +7,9 @@ public interface MaskItem {
 
     String getJsonPath();
 
-    int getFrom();
+    Integer getFrom();
 
-    int getTo();
+    Integer getTo();
 
     boolean isAccountExcluded(String account);
 
