@@ -22,6 +22,4 @@ public class MaskHelper {
         }
         return result.toString();
     }
-
-
 }

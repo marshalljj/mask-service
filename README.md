@@ -1,81 +1,98 @@
-# 脱敏--配置版
+# 100行代码实现配置化脱敏脱敏
 
 ## introduction
-在本系列的前一篇文章中，我介绍了一个注解版的脱敏工具包。基本可以符合一般的需求场景,
-胆还是存在一些不足：
-- 不支持脱敏范围变化：比如需要在接口中增加或移除新字段的脱敏
-- 不支持脱敏策略变化：比如手机号`134****8899`改为`1343345****`
-任何上述的修改都需要修改代码，并且重新发布。
-在这篇文章中，我将介绍配置版的脱敏工具，以解决上述两个问题。
+使用方式如下，在返回值类型中添加注解如下即可。
 
-## 关键概念
-### mask-resource：哪些接口需要脱敏
-mask-resource 代表一个api接口的相关脱敏配置信息。由 appid + url + httpmethod 唯一识别。包含各个mask-item。
-### mask-item
-- 需要脱敏的数据项（哪些字段需要脱敏）
-- 数据项对应的脱敏策略（如何脱敏）
-- 白名单（对哪些人不脱敏）
+```java
+@Masks({
+    @Mask(jsonPath="$.idCard", from=4, to=10),//脱敏4-8位
+    @Mask(jsonPath="$.mobile", from=8),//脱敏8-最后
+    @Mask(jsonPath="$.name", to=1)//脱敏前四位
+})
+public class User {
+    private int id;
+    private String idCard;
+    private String mobile;
+    
+    //getter,setter
+}
+```
+
+
 
 ## design
-### version 1
-![1-1](./mask.jpeg)
-如上所示，将脱敏抽取成一个独立的服务，用于配置脱敏相关的信息，以及处理脱敏事务。每当用户请求应用接口时，都会调用脱敏接口对response做后置处理。
-
-### version2
-对于所有的api调用都请求mask-service是比较浪费的事情，所以们可以对接口加标记（比如`@UseMask`），调用脱敏服务时进行标记校验。
+### 关键概念 HttpMessageConverter
+springMVC自带的扩展接口，用于将Controller返回值序列化。
+### 思路
+自定义HttpMessageConverter，做如下事情：
+1. 先将返回值转换成json格式。
+2. 再通过JsonPath对注解中指定json路径进行脱敏处理。
+3. 脱敏后的jsonString写入到输出流。
 
 ## implement
 先上代码：
 ```java
-public class MaskResource {
-    private String appId;
-    private String[] paths;
-    private String[] methods;
+public class MaskMessageConverter implements HttpMessageConverter<Object> {
 
-    public String getAppId() {
-        return appId;
+    @Autowired
+    private ObjectMapper objectMapper ;
+
+    private static final Set<MediaType> SUPPORT_MEDIA = Sets.newHashSet(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8);
+
+
+    @Override
+    public boolean canRead(Class<?> clazz, MediaType mediaType) {
+        return false;
     }
 
-    public void setAppId(String appId) {
-        this.appId = appId;
+    @Override
+    public boolean canWrite(Class<?> clazz, MediaType mediaType) {
+        return clazz.isAnnotationPresent(Masks.class) && SUPPORT_MEDIA.contains(mediaType);
     }
 
-    public String getCode() {
-        return ResourceCodeGenerator.generateCode(paths, methods);
+    @Override
+    public List<MediaType> getSupportedMediaTypes() {
+        return Lists.newArrayList(SUPPORT_MEDIA);
     }
 
-
-    public String[] getPaths() {
-        return paths;
+    @Override
+    public Object read(Class<?> clazz, HttpInputMessage inputMessage)
+        throws IOException, HttpMessageNotReadableException {
+        throw new UnsupportedOperationException();
     }
 
-    public void setPaths(String[] paths) {
-        this.paths = paths;
-    }
+    @Override
+    public void write(Object o, MediaType contentType, HttpOutputMessage outputMessage)
+        throws IOException, HttpMessageNotWritableException {
 
-    public String[] getMethods() {
-        return methods;
-    }
+        //先将返回值转换成json格式。
+        String json = null;
+        try {
+            json = objectMapper.writeValueAsString(o);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
-    public void setMethods(String[] methods) {
-        this.methods = methods;
+        //通过JsonPath对注解中指定json路径进行脱敏处理。
+        DocumentContext documentContext = JsonPath.parse(json);
+        Masks masks = o.getClass().getAnnotation(Masks.class);
+        for (Mask item : masks.value()) {
+            documentContext.map(item.jsonPath(), new MapFunction() {
+                @Override
+                public Object map(Object currentValue, Configuration configuration) {
+                    return MaskHelper.mask((String)currentValue, item.from(), item.to());
+                }
+            });
+        }
+        String string = documentContext.jsonString();
+        
+        //脱敏后的jsonString写入到输出流
+        outputMessage.getBody().write(string.getBytes());
+
     }
 }
 
-public interface MaskItem {
-
-    String getJsonPath();
-
-    Integer getFrom();
-
-    Integer getTo();
-
-    boolean isAccountExcluded(String account);
-
-}
 ```
-- 我们用appid + paths + methods 代表一个mask-resource, 并且由此生成一个resource-code.
-- 每次请求的时候通过resource-code查询对应的mask-item(多个)
-- mask-item中用json-path代表要脱敏的数据项，(from,to)代表脱敏的位置，isAccountExcluded() 判断当前用户是否在白名单
+
 
 

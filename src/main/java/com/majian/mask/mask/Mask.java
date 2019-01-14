@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Mask {
     String jsonPath();
-    int from() default 0;
+    int from() default 1;
     int to() default -1;
 }
