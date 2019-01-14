@@ -2,13 +2,14 @@ package com.majian.mask.mask;
 
 public class MaskHelper {
 
-    private MaskHelper() {
-    }
-
-    public static String maskMiddle(String content, int begin, int end) {
-        if (!validateIdx(content, begin, end)) {
-            return content;
+    public static String mask(String content, int begin, int end) {
+        if (content == null) {
+            return null;
         }
+        if (end==-1) {
+            end = content.length();
+        }
+
         int leftBegin = begin - 1;
         int rightEnd = end - 1;
         StringBuilder result = new StringBuilder();
@@ -22,18 +23,5 @@ public class MaskHelper {
         return result.toString();
     }
 
-    private static boolean validateIdx(String content, int begin, int end) {
-        int size = content.length();
-        if (begin <= 0 || begin > size) {
-            return false;
-        }
-        if (end <= 0 || end > size) {
-            return false;
-        }
-        if (begin > end) {
-            return false;
-        }
-        return true;
-    }
 
 }
