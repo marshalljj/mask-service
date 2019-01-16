@@ -1,7 +1,9 @@
-# 100行代码实现配置化脱敏脱敏
+# 100行代码实现配置化脱敏
 
 ## introduction
-使用方式如下，在返回值类型中添加注解如下即可。
+对应网络安全的角度来说，用户信息是非常敏感的，许多网站都被要求对这些信息进行脱敏处理，比如手机号展示成137****8980。本工具用于处理此类场景，具体使用方式如下：
+
+在返回值类型中添加注解如下：
 
 ```java
 @Masks({
@@ -18,8 +20,6 @@ public class User {
 }
 ```
 
-
-
 ## design
 ### 关键概念 HttpMessageConverter
 springMVC自带的扩展接口，用于将Controller返回值序列化。
@@ -30,7 +30,7 @@ springMVC自带的扩展接口，用于将Controller返回值序列化。
 3. 脱敏后的jsonString写入到输出流。
 
 ## implement
-先上代码：
+
 ```java
 public class MaskMessageConverter implements HttpMessageConverter<Object> {
 
